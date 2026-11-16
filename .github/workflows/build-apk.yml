@@ -30,14 +30,20 @@ jobs:
         with:
           node-version: '24'
 
-      - name: Flutter
+      - name: Flutter（用仓库自己 pin 的版本）
         uses: subosito/flutter-action@v2
         with:
-          channel: stable
+          flutter-version: '3.47.7'
           cache: true
 
-      - name: Android SDK 许可
-        run: yes | ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager --licenses || true
+      - name: Android SDK 许可 + NDK
+        run: |
+          SDKMANAGER="${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          # runtime/tawcroot/source.json 把 NDK 钉死在 28.2.13676358，不装就编不出 libtawcroot.so
+          "$SDKMANAGER" "ndk;28.2.13676358" "cmake;3.22.1" > /dev/null
+          echo "ANDROID_NDK_HOME=${ANDROID_HOME}/ndk/28.2.13676358" >> "$GITHUB_ENV"
+          ls "${ANDROID_HOME}/ndk" 
 
       - name: 构建运行时（rootfs + proot so）
         # 注意：build-runtime.sh 用的是 arm64-v8a / x86_64，build-apk.sh 用的是 arm64 / x64
